@@ -198,6 +198,19 @@ function setupGlobalListeners() {
             });
         });
     });
+
+    // Botão de inventário no modo AR
+    document.getElementById('ar-inventory-btn')?.addEventListener('click', () => {
+        console.log('🎒 Abrindo inventário rápido no AR...');
+        showARInventoryModal();
+    });
+
+    // Mini-mapa no modo AR (clicar para abrir mapa completo)
+    document.getElementById('ar-minimap')?.addEventListener('click', () => {
+        console.log('🗺️ Abrindo mapa do AR...');
+        // Sair do AR e ir para o mapa
+        router.navigateTo('map-screen');
+    });
 }
 
 /**
@@ -360,6 +373,125 @@ function updateARHud() {
             hpBar.classList.add('low');
         }
     }
+
+    // Iniciar radar
+    initRadar();
+}
+
+/**
+ * Modal de inventário rápido no AR
+ */
+function showARInventoryModal() {
+    const inventory = window.gameState.inventory || [];
+
+    if (inventory.length === 0) {
+        alert('Inventário vazio!');
+        return;
+    }
+
+    // Criar lista de itens para seleção
+    const itemNames = inventory.map((inv, index) => {
+        const itemData = window.hunters.getItemData ? window.hunters.getItemData(inv.item_key) : null;
+        const name = itemData ? itemData.name : inv.item_key;
+        const icon = itemData ? itemData.icon : '📦';
+        return `${index + 1}. ${icon} ${name} (${inv.quantity}x)`;
+    }).join('\n');
+
+    const selection = prompt(`Selecione um item (digite o número):\n\n${itemNames}`);
+
+    if (selection) {
+        const index = parseInt(selection) - 1;
+        if (index >= 0 && index < inventory.length) {
+            const selectedInv = inventory[index];
+            window.gameState.selectedItem = {
+                inventoryItem: selectedInv,
+                data: { id: selectedInv.item_key }
+            };
+            console.log('🎯 Item selecionado:', selectedInv.item_key);
+            alert(`Item selecionado: ${selectedInv.item_key}`);
+        }
+    }
+}
+
+/**
+ * Inicializar radar/minimap
+ */
+function initRadar() {
+    const canvas = document.getElementById('radar-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 45;
+
+    // Desenhar radar
+    function drawRadar() {
+        // Limpar
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Fundo
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.8)';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Círculos de distância
+        ctx.strokeStyle = 'rgba(201, 162, 39, 0.3)';
+        ctx.lineWidth = 1;
+        [15, 30, 45].forEach(r => {
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+
+        // Cruz central
+        ctx.strokeStyle = 'rgba(201, 162, 39, 0.5)';
+        ctx.beginPath();
+        ctx.moveTo(centerX - radius, centerY);
+        ctx.lineTo(centerX + radius, centerY);
+        ctx.moveTo(centerX, centerY - radius);
+        ctx.lineTo(centerX, centerY + radius);
+        ctx.stroke();
+
+        // Jogador (centro)
+        ctx.fillStyle = '#4169E1';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Monstros (pontos vermelhos) - posições simuladas
+        const monsters = document.querySelectorAll('.monster');
+        monsters.forEach(monster => {
+            const pos = monster.getAttribute('position');
+            if (pos) {
+                // Converter posição 3D para 2D no radar (escala)
+                const scale = radius / 10; // 10 metros = radius pixels
+                const radarX = centerX + (pos.x * scale);
+                const radarY = centerY + (pos.z * scale);
+
+                // Verificar se está dentro do radar
+                const dist = Math.sqrt(Math.pow(radarX - centerX, 2) + Math.pow(radarY - centerY, 2));
+                if (dist < radius) {
+                    ctx.fillStyle = '#8B0000';
+                    ctx.beginPath();
+                    ctx.arc(radarX, radarY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        });
+
+        // Borda
+        ctx.strokeStyle = '#C9A227';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // Atualizar radar a cada 500ms
+    setInterval(drawRadar, 500);
+    drawRadar(); // Desenhar imediatamente
 }
 
 // Inicializar quando DOM estiver pronto
@@ -373,5 +505,7 @@ if (document.readyState === 'loading') {
 window.hunters = {
     router,
     gameState: window.gameState,
-    updateARHud
+    updateARHud,
+    showARInventoryModal
 };
+
