@@ -1,15 +1,15 @@
 /**
  * Monster Spawner Component
  * Hunters Web AR
- * Spawna monstros baseado em GPS
+ * Spawna monstros no modo AR
  */
 
 import { getSpawnableMonsters, getMonster } from '../data/monsters.js';
 
 AFRAME.registerComponent('monster-spawner', {
     schema: {
-        interval: { type: 'number', default: 5000 },
-        range: { type: 'number', default: 10 },
+        interval: { type: 'number', default: 3000 }, // Reduzido para 3 segundos
+        range: { type: 'number', default: 8 },
         maxMonsters: { type: 'number', default: 3 },
         enabled: { type: 'boolean', default: true }
     },
@@ -17,12 +17,31 @@ AFRAME.registerComponent('monster-spawner', {
     init: function () {
         this.timer = 0;
         this.spawnableIds = getSpawnableMonsters();
-        console.log('👹 Monster Spawner inicializado');
+        this.hasSpawnedInitial = false;
+        console.log('👹 Monster Spawner inicializado com', this.spawnableIds.length, 'monstros disponíveis');
     },
 
     tick: function (time, timeDelta) {
         if (!this.data.enabled) return;
-        if (!window.gameState.isInAR) return;
+
+        // Verificar se a cena AR está ativa (verificar vários indicadores)
+        const scene = this.el.sceneEl;
+        const isActive = scene && (
+            scene.is('ar-mode') ||
+            scene.is('vr-mode') ||
+            window.gameState?.isInAR ||
+            scene.style.display !== 'none'
+        );
+
+        if (!isActive) return;
+
+        // Spawn inicial imediato
+        if (!this.hasSpawnedInitial) {
+            console.log('👹 Spawning monstro inicial...');
+            this.spawn();
+            this.hasSpawnedInitial = true;
+            return;
+        }
 
         this.timer += timeDelta;
         if (this.timer >= this.data.interval) {
@@ -33,6 +52,7 @@ AFRAME.registerComponent('monster-spawner', {
 
     trySpawn: function () {
         const monsterCount = document.querySelectorAll('.monster').length;
+        console.log('👹 Monstros ativos:', monsterCount, '/', this.data.maxMonsters);
 
         if (monsterCount < this.data.maxMonsters) {
             this.spawn();
@@ -40,12 +60,18 @@ AFRAME.registerComponent('monster-spawner', {
     },
 
     spawn: function () {
-        // Escolher monstro aleatório (ponderado)
-        const randomIndex = Math.floor(Math.random() * this.spawnableIds.length);
-        const monsterId = this.spawnableIds[randomIndex];
+        // Para teste, forçar lobisomem que é sempre visível
+        // Depois pode voltar para aleatório
+        const visibleMonsters = ['werewolf', 'ghost'];
+        const monsterId = visibleMonsters[Math.floor(Math.random() * visibleMonsters.length)];
         const monsterData = getMonster(monsterId);
 
-        if (!monsterData) return;
+        if (!monsterData) {
+            console.error('👹 Monstro não encontrado:', monsterId);
+            return;
+        }
+
+        console.log('👹 Criando monstro:', monsterData.name);
 
         const el = document.createElement('a-entity');
         el.classList.add('monster');
@@ -53,46 +79,45 @@ AFRAME.registerComponent('monster-spawner', {
         el.dataset.hp = monsterData.hp;
         el.dataset.maxHp = monsterData.hp;
 
-        // Verificar se modelo existe
+        // Modelo GLB
         const modelPath = `/models/${monsterData.model}`;
+        console.log('👹 Carregando modelo:', modelPath);
 
-        el.setAttribute('gltf-model', `url(${modelPath})`);
+        el.setAttribute('gltf-model', modelPath);
         el.setAttribute('animation-mixer', '');
 
-        // Escala
-        const scale = monsterData.scale || 1;
+        // Escala reduzida para caber na tela
+        const scale = (monsterData.scale || 1) * 0.5; // Reduzir para metade
         el.setAttribute('scale', `${scale} ${scale} ${scale}`);
 
-        // Posição aleatória ao redor do jogador
+        // Posição à frente do jogador (mais perto)
         const angle = Math.random() * Math.PI * 2;
-        const radius = 3 + Math.random() * (this.data.range - 3);
+        const radius = 2 + Math.random() * 3; // Entre 2 e 5 metros
         const x = Math.cos(angle) * radius;
-        const z = Math.sin(angle) * radius;
+        const z = -Math.abs(Math.sin(angle) * radius); // Sempre à frente (z negativo)
         const y = 0;
 
         el.setAttribute('position', { x, y, z });
 
-        // Rotação aleatória
-        el.setAttribute('rotation', `0 ${Math.random() * 360} 0`);
+        // Rotação para olhar para o jogador
+        const rotationY = (Math.atan2(x, z) * 180 / Math.PI) + 180;
+        el.setAttribute('rotation', `0 ${rotationY} 0`);
 
-        // Animação de entrada
-        el.setAttribute('animation__spawn', {
-            property: 'scale',
-            from: '0 0 0',
-            to: `${scale} ${scale} ${scale}`,
-            dur: 500,
-            easing: 'easeOutElastic'
+        // Evento de modelo carregado
+        el.addEventListener('model-loaded', () => {
+            console.log('👹 Modelo carregado com sucesso:', monsterData.name);
         });
 
-        // Invisibilidade (para fantasmas e cães do inferno)
-        if (monsterData.invisible) {
-            el.setAttribute('visible', !monsterData.invisible);
-            el.dataset.invisible = 'true';
-            el.dataset.visibleWith = monsterData.visibleWith || '';
-        }
+        el.addEventListener('model-error', (e) => {
+            console.error('👹 Erro ao carregar modelo:', monsterData.name, e);
+        });
+
+        // Para fantasmas, torná-los visíveis para teste
+        // Remover a invisibilidade por enquanto
+        el.setAttribute('visible', true);
 
         this.el.sceneEl.appendChild(el);
-        console.log(`👹 Spawned: ${monsterData.name} at (${x.toFixed(2)}, ${z.toFixed(2)})`);
+        console.log(`👹 Spawned: ${monsterData.name} em (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
 
         // Atualizar HUD do monstro
         this.updateMonsterHUD(monsterData);
