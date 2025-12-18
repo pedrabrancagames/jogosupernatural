@@ -379,98 +379,255 @@ function updateARHud() {
 }
 
 /**
- * Modal de inventário rápido no AR
+ * Estado do equipamento
+ */
+window.gameState.equipment = {
+    weapon: null,
+    healing: null,
+    accessory: null
+};
+
+window.gameState.cameraFilterActive = false;
+
+/**
+ * Modal de inventário rápido no AR - com categorias
  */
 function showARInventoryModal() {
     const modal = document.getElementById('ar-inventory-modal');
-    const grid = document.getElementById('ar-inventory-grid');
-    const selectedText = document.getElementById('ar-inventory-selected');
+    const weaponsGrid = document.getElementById('ar-weapons-grid');
+    const healingGrid = document.getElementById('ar-healing-grid');
+    const accessoryGrid = document.getElementById('ar-accessory-grid');
     const inventory = window.gameState.inventory || [];
 
-    if (!modal || !grid) return;
+    if (!modal) return;
 
-    // Limpar grid
-    grid.innerHTML = '';
+    // Limpar grids
+    if (weaponsGrid) weaponsGrid.innerHTML = '';
+    if (healingGrid) healingGrid.innerHTML = '';
+    if (accessoryGrid) accessoryGrid.innerHTML = '';
 
-    if (inventory.length === 0) {
-        grid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: var(--text-muted); padding: 1rem;">Inventário vazio</div>';
-    } else {
-        // Importar dados de itens
-        import('./src/data/items.js').then(({ getItem }) => {
-            inventory.forEach((inv) => {
-                const itemData = getItem(inv.item_key);
-                const icon = itemData ? itemData.icon : '📦';
-                const name = itemData ? itemData.name : inv.item_key;
+    // Importar dados de itens
+    import('./src/data/items.js').then(({ getItem, items }) => {
+        inventory.forEach((inv) => {
+            const itemData = getItem(inv.item_key);
+            if (!itemData) return;
 
-                const itemEl = document.createElement('div');
-                itemEl.className = 'ar-inventory-item';
-                itemEl.dataset.itemKey = inv.item_key;
-                itemEl.title = name;
+            const icon = itemData.icon || '📦';
+            const name = itemData.name || inv.item_key;
+            const type = itemData.type || 'other';
 
-                // Verificar se está selecionado
-                if (window.gameState.selectedItem?.inventoryItem?.item_key === inv.item_key) {
+            // Determinar categoria
+            let targetGrid = null;
+            let category = null;
+
+            if (type === 'weapon' || type === 'ammo') {
+                targetGrid = weaponsGrid;
+                category = 'weapon';
+            } else if (type === 'healing') {
+                targetGrid = healingGrid;
+                category = 'healing';
+            } else if (type === 'support' || type === 'special') {
+                targetGrid = accessoryGrid;
+                category = 'accessory';
+            }
+
+            if (!targetGrid) return;
+
+            const itemEl = document.createElement('div');
+            itemEl.className = 'ar-inventory-item';
+            itemEl.dataset.itemKey = inv.item_key;
+            itemEl.dataset.category = category;
+            itemEl.title = name;
+
+            // Verificar se está equipado
+            if (window.gameState.equipment[category]?.item_key === inv.item_key) {
+                itemEl.classList.add('selected');
+            }
+
+            itemEl.innerHTML = `
+                <span>${icon}</span>
+                ${inv.quantity > 1 ? `<span class="quantity">${inv.quantity}</span>` : ''}
+            `;
+
+            itemEl.addEventListener('click', () => {
+                // Remover seleção anterior da mesma categoria
+                targetGrid.querySelectorAll('.ar-inventory-item').forEach(el => el.classList.remove('selected'));
+
+                // Toggle: se já estava selecionado, desequipa
+                if (window.gameState.equipment[category]?.item_key === inv.item_key) {
+                    window.gameState.equipment[category] = null;
+                } else {
+                    // Equipar
                     itemEl.classList.add('selected');
+                    window.gameState.equipment[category] = {
+                        ...inv,
+                        data: itemData
+                    };
                 }
 
-                itemEl.innerHTML = `
-                    <span>${icon}</span>
-                    ${inv.quantity > 1 ? `<span class="quantity">${inv.quantity}</span>` : ''}
-                `;
-
-                itemEl.addEventListener('click', () => {
-                    // Remover seleção anterior
-                    grid.querySelectorAll('.ar-inventory-item').forEach(el => el.classList.remove('selected'));
-
-                    // Selecionar este item
-                    itemEl.classList.add('selected');
-
-                    window.gameState.selectedItem = {
-                        inventoryItem: inv,
-                        data: itemData || { id: inv.item_key }
-                    };
-
-                    // Atualizar texto
-                    selectedText.textContent = `✓ ${name} selecionado`;
-                    selectedText.classList.add('has-item');
-
-                    console.log('🎯 Item selecionado:', name);
-
-                    // Fechar modal após pequeno delay
-                    setTimeout(() => {
-                        modal.classList.remove('active');
-                    }, 500);
-                });
-
-                grid.appendChild(itemEl);
+                console.log(`🎯 ${category} equipado:`, window.gameState.equipment[category]?.item_key || 'nenhum');
             });
-        }).catch(() => {
-            // Fallback se import falhar
-            inventory.forEach((inv) => {
-                const itemEl = document.createElement('div');
-                itemEl.className = 'ar-inventory-item';
-                itemEl.innerHTML = `<span>📦</span><span class="quantity">${inv.quantity}</span>`;
-                itemEl.addEventListener('click', () => {
-                    window.gameState.selectedItem = { inventoryItem: inv, data: { id: inv.item_key } };
-                    modal.classList.remove('active');
-                });
-                grid.appendChild(itemEl);
-            });
+
+            targetGrid.appendChild(itemEl);
         });
-    }
 
-    // Atualizar texto do item selecionado
-    if (window.gameState.selectedItem) {
-        const itemData = window.gameState.selectedItem.data;
-        const name = itemData?.name || window.gameState.selectedItem.inventoryItem?.item_key || 'Item';
-        selectedText.textContent = `✓ ${name} selecionado`;
-        selectedText.classList.add('has-item');
-    } else {
-        selectedText.textContent = 'Toque em um item para selecionar';
-        selectedText.classList.remove('has-item');
-    }
+        // Adicionar mensagens se categorias vazias
+        if (weaponsGrid && weaponsGrid.children.length === 0) {
+            weaponsGrid.innerHTML = '<div class="empty-category">Nenhuma arma</div>';
+        }
+        if (healingGrid && healingGrid.children.length === 0) {
+            healingGrid.innerHTML = '<div class="empty-category">Nenhum item de cura</div>';
+        }
+        if (accessoryGrid && accessoryGrid.children.length === 0) {
+            accessoryGrid.innerHTML = '<div class="empty-category">Nenhum acessório</div>';
+        }
+    });
 
     // Mostrar modal
     modal.classList.add('active');
+}
+
+/**
+ * Confirmar equipamento e atualizar HUD
+ */
+function confirmEquipment() {
+    const modal = document.getElementById('ar-inventory-modal');
+    if (modal) modal.classList.remove('active');
+
+    updateEquipmentHUD();
+    console.log('✅ Equipamento confirmado:', window.gameState.equipment);
+}
+
+/**
+ * Atualizar HUD com equipamento atual
+ */
+function updateEquipmentHUD() {
+    const actionIcon = document.getElementById('ar-action-icon');
+    const healingBtn = document.getElementById('ar-healing-btn');
+    const healingIcon = document.getElementById('ar-healing-icon');
+    const accessoryBtn = document.getElementById('ar-accessory-btn');
+    const accessoryIcon = document.getElementById('ar-accessory-icon');
+
+    // Atualizar botão de ação (arma)
+    if (actionIcon) {
+        if (window.gameState.equipment.weapon) {
+            actionIcon.textContent = window.gameState.equipment.weapon.data?.icon || '⚔️';
+        } else {
+            actionIcon.textContent = '✊';
+        }
+    }
+
+    // Atualizar botão de cura
+    if (healingBtn) {
+        if (window.gameState.equipment.healing) {
+            healingBtn.style.display = 'flex';
+            if (healingIcon) {
+                healingIcon.textContent = window.gameState.equipment.healing.data?.icon || '🩹';
+            }
+        } else {
+            healingBtn.style.display = 'none';
+        }
+    }
+
+    // Atualizar botão de acessório
+    if (accessoryBtn) {
+        if (window.gameState.equipment.accessory) {
+            accessoryBtn.style.display = 'flex';
+            if (accessoryIcon) {
+                accessoryIcon.textContent = window.gameState.equipment.accessory.data?.icon || '🔧';
+            }
+        } else {
+            accessoryBtn.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Usar item de cura
+ */
+function useHealingItem() {
+    const healing = window.gameState.equipment.healing;
+    if (!healing) return;
+
+    const healAmount = healing.data?.healAmount || 25;
+    const currentHP = window.gameState.playerHP;
+    const maxHP = window.gameState.maxPlayerHP;
+
+    window.gameState.playerHP = Math.min(maxHP, currentHP + healAmount);
+
+    console.log(`💚 Curado +${healAmount} HP! HP atual: ${window.gameState.playerHP}`);
+
+    // Atualizar HUD
+    updateARHud();
+
+    // Consumir item
+    consumeEquippedItem('healing');
+
+    // Feedback visual
+    if (navigator.vibrate) navigator.vibrate(100);
+}
+
+/**
+ * Alternar acessório (ex: câmera)
+ */
+function toggleAccessory() {
+    const accessory = window.gameState.equipment.accessory;
+    if (!accessory) return;
+
+    const accessoryBtn = document.getElementById('ar-accessory-btn');
+    const arScene = document.getElementById('ar-scene');
+
+    // Verificar se é câmera (revela fantasmas)
+    if (accessory.item_key === 'old_camera') {
+        window.gameState.cameraFilterActive = !window.gameState.cameraFilterActive;
+
+        if (arScene) {
+            if (window.gameState.cameraFilterActive) {
+                arScene.classList.add('camera-filter');
+                accessoryBtn?.classList.add('active');
+                console.log('📹 Câmera ativada - Revelando fantasmas');
+
+                // Revelar fantasmas
+                document.querySelectorAll('.monster[data-invisible="true"]').forEach(monster => {
+                    monster.setAttribute('visible', true);
+                });
+            } else {
+                arScene.classList.remove('camera-filter');
+                accessoryBtn?.classList.remove('active');
+                console.log('📹 Câmera desativada');
+
+                // Esconder fantasmas novamente
+                document.querySelectorAll('.monster[data-invisible="true"]').forEach(monster => {
+                    monster.setAttribute('visible', false);
+                });
+            }
+        }
+    } else {
+        console.log(`🔧 Usando acessório: ${accessory.data?.name}`);
+    }
+
+    if (navigator.vibrate) navigator.vibrate(50);
+}
+
+/**
+ * Consumir item equipado
+ */
+async function consumeEquippedItem(category) {
+    const item = window.gameState.equipment[category];
+    if (!item) return;
+
+    // Reduzir quantidade no inventário
+    const invItem = window.gameState.inventory.find(i => i.item_key === item.item_key);
+    if (invItem) {
+        invItem.quantity--;
+        if (invItem.quantity <= 0) {
+            // Remover do inventário
+            window.gameState.inventory = window.gameState.inventory.filter(i => i.item_key !== item.item_key);
+            // Desequipar
+            window.gameState.equipment[category] = null;
+            updateEquipmentHUD();
+        }
+    }
 }
 
 /**
@@ -483,8 +640,12 @@ function closeARInventoryModal() {
     }
 }
 
-// Adicionar listener para fechar o modal
+// Event Listeners para equipamento
 document.getElementById('ar-inventory-close')?.addEventListener('click', closeARInventoryModal);
+document.getElementById('ar-equip-confirm')?.addEventListener('click', confirmEquipment);
+document.getElementById('ar-healing-btn')?.addEventListener('click', useHealingItem);
+document.getElementById('ar-accessory-btn')?.addEventListener('click', toggleAccessory);
+
 
 
 /**

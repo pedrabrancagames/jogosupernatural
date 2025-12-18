@@ -279,14 +279,27 @@
                 <canvas id="radar-canvas" width="100" height="100"></canvas>
             </div>
 
-            <!-- Botão de Ação Central -->
-            <button class="ar-action-btn" id="ar-action-btn">
-                ⚔️
+            <!-- Botão de Ação Central (mostra ícone da arma equipada) -->
+            <button class="ar-action-btn" id="ar-action-btn" title="Atacar">
+                <span id="ar-action-icon">✊</span>
             </button>
 
-            <!-- Botões de Inventário -->
-            <div class="ar-inventory-buttons">
-                <button class="ar-inventory-btn" id="ar-inventory-btn">
+            <!-- Coluna de Botões à Direita -->
+            <div class="ar-right-buttons">
+                <!-- Botão Acessório (câmera, etc) - só aparece se equipado -->
+                <button class="ar-equip-btn ar-accessory-btn" id="ar-accessory-btn" style="display: none;"
+                    title="Usar Acessório">
+                    <span id="ar-accessory-icon">📹</span>
+                </button>
+
+                <!-- Botão Cura - só aparece se equipado -->
+                <button class="ar-equip-btn ar-healing-btn" id="ar-healing-btn" style="display: none;"
+                    title="Usar Cura">
+                    <span id="ar-healing-icon">🩹</span>
+                </button>
+
+                <!-- Botão Inventário (sempre visível) -->
+                <button class="ar-inventory-btn" id="ar-inventory-btn" title="Inventário">
                     🎒
                 </button>
             </div>
@@ -300,14 +313,30 @@
         <!-- Modal Inventário Rápido AR -->
         <div class="ar-inventory-modal" id="ar-inventory-modal">
             <div class="ar-inventory-header">
-                <span>🎒 Inventário</span>
+                <span>🎒 Equipamento</span>
                 <button class="ar-inventory-close" id="ar-inventory-close">✕</button>
             </div>
-            <div class="ar-inventory-grid" id="ar-inventory-grid">
-                <!-- Itens serão inseridos dinamicamente -->
+
+            <!-- Categoria: Armas -->
+            <div class="ar-category">
+                <div class="ar-category-title">⚔️ Armas</div>
+                <div class="ar-inventory-grid" id="ar-weapons-grid"></div>
             </div>
-            <div class="ar-inventory-selected" id="ar-inventory-selected">
-                Nenhum item selecionado
+
+            <!-- Categoria: Cura -->
+            <div class="ar-category">
+                <div class="ar-category-title">💊 Cura</div>
+                <div class="ar-inventory-grid" id="ar-healing-grid"></div>
+            </div>
+
+            <!-- Categoria: Acessórios -->
+            <div class="ar-category">
+                <div class="ar-category-title">🔧 Acessórios</div>
+                <div class="ar-inventory-grid" id="ar-accessory-grid"></div>
+            </div>
+
+            <div class="ar-inventory-footer">
+                <button class="btn btn-primary" id="ar-equip-confirm" style="width: 100%;">Confirmar</button>
             </div>
         </div>
     </div>
