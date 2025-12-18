@@ -382,36 +382,110 @@ function updateARHud() {
  * Modal de inventário rápido no AR
  */
 function showARInventoryModal() {
+    const modal = document.getElementById('ar-inventory-modal');
+    const grid = document.getElementById('ar-inventory-grid');
+    const selectedText = document.getElementById('ar-inventory-selected');
     const inventory = window.gameState.inventory || [];
 
+    if (!modal || !grid) return;
+
+    // Limpar grid
+    grid.innerHTML = '';
+
     if (inventory.length === 0) {
-        alert('Inventário vazio!');
-        return;
+        grid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: var(--text-muted); padding: 1rem;">Inventário vazio</div>';
+    } else {
+        // Importar dados de itens
+        import('./src/data/items.js').then(({ getItem }) => {
+            inventory.forEach((inv) => {
+                const itemData = getItem(inv.item_key);
+                const icon = itemData ? itemData.icon : '📦';
+                const name = itemData ? itemData.name : inv.item_key;
+
+                const itemEl = document.createElement('div');
+                itemEl.className = 'ar-inventory-item';
+                itemEl.dataset.itemKey = inv.item_key;
+                itemEl.title = name;
+
+                // Verificar se está selecionado
+                if (window.gameState.selectedItem?.inventoryItem?.item_key === inv.item_key) {
+                    itemEl.classList.add('selected');
+                }
+
+                itemEl.innerHTML = `
+                    <span>${icon}</span>
+                    ${inv.quantity > 1 ? `<span class="quantity">${inv.quantity}</span>` : ''}
+                `;
+
+                itemEl.addEventListener('click', () => {
+                    // Remover seleção anterior
+                    grid.querySelectorAll('.ar-inventory-item').forEach(el => el.classList.remove('selected'));
+
+                    // Selecionar este item
+                    itemEl.classList.add('selected');
+
+                    window.gameState.selectedItem = {
+                        inventoryItem: inv,
+                        data: itemData || { id: inv.item_key }
+                    };
+
+                    // Atualizar texto
+                    selectedText.textContent = `✓ ${name} selecionado`;
+                    selectedText.classList.add('has-item');
+
+                    console.log('🎯 Item selecionado:', name);
+
+                    // Fechar modal após pequeno delay
+                    setTimeout(() => {
+                        modal.classList.remove('active');
+                    }, 500);
+                });
+
+                grid.appendChild(itemEl);
+            });
+        }).catch(() => {
+            // Fallback se import falhar
+            inventory.forEach((inv) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'ar-inventory-item';
+                itemEl.innerHTML = `<span>📦</span><span class="quantity">${inv.quantity}</span>`;
+                itemEl.addEventListener('click', () => {
+                    window.gameState.selectedItem = { inventoryItem: inv, data: { id: inv.item_key } };
+                    modal.classList.remove('active');
+                });
+                grid.appendChild(itemEl);
+            });
+        });
     }
 
-    // Criar lista de itens para seleção
-    const itemNames = inventory.map((inv, index) => {
-        const itemData = window.hunters.getItemData ? window.hunters.getItemData(inv.item_key) : null;
-        const name = itemData ? itemData.name : inv.item_key;
-        const icon = itemData ? itemData.icon : '📦';
-        return `${index + 1}. ${icon} ${name} (${inv.quantity}x)`;
-    }).join('\n');
+    // Atualizar texto do item selecionado
+    if (window.gameState.selectedItem) {
+        const itemData = window.gameState.selectedItem.data;
+        const name = itemData?.name || window.gameState.selectedItem.inventoryItem?.item_key || 'Item';
+        selectedText.textContent = `✓ ${name} selecionado`;
+        selectedText.classList.add('has-item');
+    } else {
+        selectedText.textContent = 'Toque em um item para selecionar';
+        selectedText.classList.remove('has-item');
+    }
 
-    const selection = prompt(`Selecione um item (digite o número):\n\n${itemNames}`);
+    // Mostrar modal
+    modal.classList.add('active');
+}
 
-    if (selection) {
-        const index = parseInt(selection) - 1;
-        if (index >= 0 && index < inventory.length) {
-            const selectedInv = inventory[index];
-            window.gameState.selectedItem = {
-                inventoryItem: selectedInv,
-                data: { id: selectedInv.item_key }
-            };
-            console.log('🎯 Item selecionado:', selectedInv.item_key);
-            alert(`Item selecionado: ${selectedInv.item_key}`);
-        }
+/**
+ * Fechar modal de inventário AR
+ */
+function closeARInventoryModal() {
+    const modal = document.getElementById('ar-inventory-modal');
+    if (modal) {
+        modal.classList.remove('active');
     }
 }
+
+// Adicionar listener para fechar o modal
+document.getElementById('ar-inventory-close')?.addEventListener('click', closeARInventoryModal);
+
 
 /**
  * Inicializar radar/minimap

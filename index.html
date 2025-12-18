@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#0a0a0a" />
     <meta name="description" content="Hunters Web AR - Jogo de Realidade Aumentada baseado em Supernatural" />
-    
+
     <title>🔫 Hunters Web AR - Caçadores</title>
-    
+
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -33,7 +33,7 @@
             <div class="splash-logo">⭐</div>
             <h1 class="splash-title">Hunters</h1>
             <p class="splash-subtitle">Web AR Experience</p>
-            
+
             <div class="splash-buttons">
                 <button id="btn-login-anonymous" class="btn btn-primary">
                     🎮 Entrar como Visitante
@@ -214,7 +214,7 @@
 
         <div class="profile-section">
             <h3 class="section-title">Configurações</h3>
-            
+
             <div class="setting-item">
                 <span class="setting-label">Som</span>
                 <label class="toggle">
@@ -296,6 +296,20 @@
         <button class="btn btn-back" id="ar-back" style="position: absolute; top: 1rem; left: 1rem;">
             ←
         </button>
+
+        <!-- Modal Inventário Rápido AR -->
+        <div class="ar-inventory-modal" id="ar-inventory-modal">
+            <div class="ar-inventory-header">
+                <span>🎒 Inventário</span>
+                <button class="ar-inventory-close" id="ar-inventory-close">✕</button>
+            </div>
+            <div class="ar-inventory-grid" id="ar-inventory-grid">
+                <!-- Itens serão inseridos dinamicamente -->
+            </div>
+            <div class="ar-inventory-selected" id="ar-inventory-selected">
+                Nenhum item selecionado
+            </div>
+        </div>
     </div>
 
     <!-- ================================================
@@ -327,7 +341,8 @@
                 <button class="modal-close" id="monster-modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="monster-detail-icon" id="modal-monster-icon" style="font-size: 4rem; text-align: center; margin-bottom: 1rem;">👻</div>
+                <div class="monster-detail-icon" id="modal-monster-icon"
+                    style="font-size: 4rem; text-align: center; margin-bottom: 1rem;">👻</div>
                 <h4 style="color: var(--spn-gold); margin-bottom: 0.5rem;">Lore</h4>
                 <p id="modal-monster-lore" style="margin-bottom: 1rem;">...</p>
                 <h4 style="color: var(--spn-gold); margin-bottom: 0.5rem;">Como Derrotar</h4>
@@ -342,31 +357,17 @@
     <!-- ================================================
          A-Frame Scene (para AR)
          ================================================ -->
-    <a-scene 
-        id="ar-scene"
-        renderer="alpha: true; antialias: true; colorManagement: true;"
-        xr-mode-ui="enabled: false;"
-        webxr="optionalFeatures: dom-overlay, hit-test; overlayElement: #ar-hud;"
-        ar-hit-test="target: #reticle;"
-        embedded
-        style="display: none;"
-    >
+    <a-scene id="ar-scene" renderer="alpha: true; antialias: true; colorManagement: true;" xr-mode-ui="enabled: false;"
+        webxr="optionalFeatures: dom-overlay, hit-test; overlayElement: #ar-hud;" ar-hit-test="target: #reticle;"
+        embedded style="display: none;">
         <!-- Spawner de Monstros -->
         <a-entity id="monster-spawner" monster-spawner></a-entity>
 
         <!-- Câmera com Raycaster -->
         <a-entity id="rig">
-            <a-camera 
-                id="ar-camera"
-                position="0 1.6 0" 
-                look-controls="enabled: false"
-            >
-                <a-entity 
-                    id="weapon" 
-                    weapon 
-                    raycaster="objects: .monster; far: 50; showLine: false"
-                    position="0 0 -0.5"
-                ></a-entity>
+            <a-camera id="ar-camera" position="0 1.6 0" look-controls="enabled: false">
+                <a-entity id="weapon" weapon raycaster="objects: .monster; far: 50; showLine: false"
+                    position="0 0 -0.5"></a-entity>
                 <a-cursor visible="false"></a-cursor>
             </a-camera>
         </a-entity>
