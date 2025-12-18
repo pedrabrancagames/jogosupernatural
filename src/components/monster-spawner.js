@@ -86,16 +86,16 @@ AFRAME.registerComponent('monster-spawner', {
         el.setAttribute('gltf-model', modelPath);
         el.setAttribute('animation-mixer', '');
 
-        // Escala reduzida para caber na tela
-        const scale = (monsterData.scale || 1) * 0.5; // Reduzir para metade
+        // Escala MAIOR para visibilidade
+        const scale = (monsterData.scale || 1) * 1.5; // Aumentar 50%
         el.setAttribute('scale', `${scale} ${scale} ${scale}`);
 
-        // Posição à frente do jogador (mais perto)
+        // Posição à frente do jogador
         const angle = Math.random() * Math.PI * 2;
-        const radius = 2 + Math.random() * 3; // Entre 2 e 5 metros
+        const radius = 2 + Math.random() * 2; // Entre 2 e 4 metros (mais perto)
         const x = Math.cos(angle) * radius;
         const z = -Math.abs(Math.sin(angle) * radius); // Sempre à frente (z negativo)
-        const y = 0;
+        const y = 0.5; // Elevar 0.5m do chão para ficar visível
 
         el.setAttribute('position', { x, y, z });
 

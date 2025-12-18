@@ -4,8 +4,6 @@
  * Integração com Leaflet.js
  */
 
-import L from 'leaflet';
-
 let map = null;
 let playerMarker = null;
 let watchId = null;
@@ -15,42 +13,70 @@ let watchId = null;
  */
 function initMap() {
     const container = document.getElementById('map-container');
-    if (!container || map) return;
+    if (!container) {
+        console.error('🗺️ Container do mapa não encontrado');
+        return;
+    }
 
-    // Posição padrão (será atualizada com geolocalização)
-    const defaultPosition = [-23.5505, -46.6333]; // São Paulo
+    // Se já existe mapa, limpar
+    if (map) {
+        map.remove();
+        map = null;
+    }
 
-    map = L.map('map-container', {
-        zoomControl: false,
-        attributionControl: false
-    }).setView(defaultPosition, 15);
+    // Forçar altura do container
+    container.style.height = 'calc(100vh - 120px)';
+    container.style.width = '100%';
+    container.style.minHeight = '400px';
 
-    // Tile layer escuro (tema Supernatural)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
-    }).addTo(map);
+    // Posição padrão (São Paulo)
+    const defaultPosition = [-23.5505, -46.6333];
 
-    // Marcador do jogador
-    const playerIcon = L.divIcon({
-        className: 'player-marker',
-        html: '<div style="width: 20px; height: 20px; background: #4169E1; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(65, 105, 225, 0.8);"></div>',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-    });
+    try {
+        // Importar Leaflet dinamicamente
+        import('leaflet').then((L) => {
+            map = L.map('map-container', {
+                zoomControl: true,
+                attributionControl: false
+            }).setView(defaultPosition, 15);
 
-    playerMarker = L.marker(defaultPosition, { icon: playerIcon }).addTo(map);
+            // Tile layer estilo escuro
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                subdomains: 'abcd'
+            }).addTo(map);
 
-    // Iniciar geolocalização
-    startGeolocation();
+            // Marcador do jogador
+            const playerIcon = L.divIcon({
+                className: 'player-marker',
+                html: '<div style="width: 20px; height: 20px; background: #4169E1; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(65, 105, 225, 0.8);"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
 
-    // Adicionar monstros de exemplo (serão carregados do Supabase)
-    addExampleMarkers();
+            playerMarker = L.marker(defaultPosition, { icon: playerIcon }).addTo(map);
+
+            // Forçar redimensionamento
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
+
+            // Iniciar geolocalização
+            startGeolocation(L);
+
+            console.log('🗺️ Mapa inicializado com sucesso');
+        }).catch(err => {
+            console.error('🗺️ Erro ao carregar Leaflet:', err);
+        });
+    } catch (error) {
+        console.error('🗺️ Erro ao criar mapa:', error);
+    }
 }
 
 /**
  * Iniciar rastreamento de geolocalização
  */
-function startGeolocation() {
+function startGeolocation(L) {
     if (!navigator.geolocation) {
         console.warn('Geolocalização não suportada');
         return;
@@ -68,9 +94,10 @@ function startGeolocation() {
 
             // Atualizar estado global
             window.gameState.playerPosition = { latitude, longitude };
+            console.log('📍 Posição atualizada:', latitude, longitude);
         },
         (error) => {
-            console.error('Erro de geolocalização:', error);
+            console.error('Erro de geolocalização:', error.message);
         },
         {
             enableHighAccuracy: true,
@@ -78,32 +105,6 @@ function startGeolocation() {
             timeout: 10000
         }
     );
-}
-
-/**
- * Adicionar marcadores de exemplo
- */
-function addExampleMarkers() {
-    if (!map) return;
-
-    // Ícone de monstro
-    const monsterIcon = L.divIcon({
-        className: 'monster-marker',
-        html: '<div style="width: 24px; height: 24px; background: #8B0000; border: 2px solid #C9A227; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">👻</div>',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
-    });
-
-    // Ícone de loot
-    const lootIcon = L.divIcon({
-        className: 'loot-marker',
-        html: '<div style="width: 20px; height: 20px; background: #C9A227; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">🎒</div>',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-    });
-
-    // Monstros de exemplo (posições relativas ao player)
-    // Serão substituídos por dados reais do Supabase
 }
 
 /**

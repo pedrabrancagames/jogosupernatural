@@ -218,12 +218,38 @@ async function onUserAuthenticated(user) {
         }
 
         // Carregar inventário
-        const inventory = await inventoryService.getInventory();
+        let inventory = await inventoryService.getInventory();
+
+        // Se inventário vazio, adicionar itens de teste
+        if (inventory.length === 0) {
+            console.log('📦 Adicionando itens de teste ao inventário...');
+            // Adicionar itens localmente para teste (sem precisar de banco)
+            inventory = [
+                { id: '1', item_key: 'iron_bar', quantity: 3 },
+                { id: '2', item_key: 'silver_bullet', quantity: 12 },
+                { id: '3', item_key: 'old_camera', quantity: 1 },
+                { id: '4', item_key: 'salt_bag', quantity: 5 },
+                { id: '5', item_key: 'first_aid', quantity: 2 },
+                { id: '6', item_key: 'knife', quantity: 1 },
+                { id: '7', item_key: 'holy_water', quantity: 3 },
+                { id: '8', item_key: 'lighter', quantity: 1 }
+            ];
+        }
+
         window.gameState.inventory = inventory;
 
         console.log('📦 Dados carregados:', { profile, inventory: inventory.length });
     } catch (error) {
         console.error('❌ Erro ao carregar dados:', error);
+        // Mesmo com erro, adicionar itens de teste
+        window.gameState.inventory = [
+            { id: '1', item_key: 'iron_bar', quantity: 3 },
+            { id: '2', item_key: 'silver_bullet', quantity: 12 },
+            { id: '3', item_key: 'old_camera', quantity: 1 },
+            { id: '4', item_key: 'salt_bag', quantity: 5 },
+            { id: '5', item_key: 'first_aid', quantity: 2 },
+            { id: '6', item_key: 'knife', quantity: 1 }
+        ];
     }
 
     // Navegar para home
