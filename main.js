@@ -208,9 +208,14 @@ function setupGlobalListeners() {
     // Mini-mapa no modo AR (clicar para abrir mapa completo)
     document.getElementById('ar-minimap')?.addEventListener('click', () => {
         console.log('🗺️ Abrindo mapa do AR...');
-        // Sair do AR e ir para o mapa
         router.navigateTo('map-screen');
     });
+
+    // Botões de equipamento AR
+    document.getElementById('ar-inventory-close')?.addEventListener('click', closeARInventoryModal);
+    document.getElementById('ar-equip-confirm')?.addEventListener('click', confirmEquipment);
+    document.getElementById('ar-healing-btn')?.addEventListener('click', useHealingItem);
+    document.getElementById('ar-accessory-btn')?.addEventListener('click', toggleAccessory);
 }
 
 /**
@@ -639,14 +644,6 @@ function closeARInventoryModal() {
         modal.classList.remove('active');
     }
 }
-
-// Event Listeners para equipamento
-document.getElementById('ar-inventory-close')?.addEventListener('click', closeARInventoryModal);
-document.getElementById('ar-equip-confirm')?.addEventListener('click', confirmEquipment);
-document.getElementById('ar-healing-btn')?.addEventListener('click', useHealingItem);
-document.getElementById('ar-accessory-btn')?.addEventListener('click', toggleAccessory);
-
-
 
 /**
  * Inicializar radar/minimap
