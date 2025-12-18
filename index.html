@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="description" content="Hunters Web AR - Jogo de Realidade Aumentada baseado em Supernatural" />
+    
+    <title>🔫 Hunters Web AR - Caçadores</title>
+    
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+
+<body>
+    <!-- ================================================
+         UI Layer - Overlays
+         ================================================ -->
+    <div id="ui-layer">
+        <div id="damage-overlay"></div>
+        <div id="crosshair">
+            <span class="crosshair-dot"></span>
+        </div>
+    </div>
+
+    <!-- ================================================
+         Splash Screen - Tela de Boas-Vindas
+         ================================================ -->
+    <div id="splash-screen" class="screen">
+        <div class="splash-content">
+            <div class="splash-logo">⭐</div>
+            <h1 class="splash-title">Hunters</h1>
+            <p class="splash-subtitle">Web AR Experience</p>
+            
+            <div class="splash-buttons">
+                <button id="btn-login-anonymous" class="btn btn-primary">
+                    🎮 Entrar como Visitante
+                </button>
+                <button id="btn-login-email" class="btn btn-secondary">
+                    📧 Entrar com E-mail
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================
+         Home Screen - Hub Central
+         ================================================ -->
+    <div id="home-screen" class="screen">
+        <header class="home-header">
+            <div class="home-logo">⭐</div>
+            <h1 class="home-title">Hunters</h1>
+            <p class="home-subtitle" id="hunter-greeting">Olá, Caçador!</p>
+        </header>
+
+        <nav class="home-menu">
+            <!-- Botão Principal - Iniciar Caçada -->
+            <button class="menu-item hunt" data-screen="ar-screen">
+                <span class="menu-icon">🔫</span>
+                <span class="menu-label">Iniciar Caçada</span>
+            </button>
+
+            <!-- Mapa -->
+            <button class="menu-item" data-screen="map-screen">
+                <span class="menu-icon">🗺️</span>
+                <span class="menu-label">Mapa</span>
+            </button>
+
+            <!-- Inventário -->
+            <button class="menu-item" data-screen="inventory-screen">
+                <span class="menu-icon">🎒</span>
+                <span class="menu-label">Inventário</span>
+            </button>
+
+            <!-- Casos (Bestiário) -->
+            <button class="menu-item" data-screen="bestiary-screen">
+                <span class="menu-icon">📖</span>
+                <span class="menu-label">Casos</span>
+            </button>
+
+            <!-- Diário -->
+            <button class="menu-item" data-screen="diary-screen">
+                <span class="menu-icon">📓</span>
+                <span class="menu-label">Diário</span>
+            </button>
+
+            <!-- Perfil -->
+            <button class="menu-item" data-screen="profile-screen">
+                <span class="menu-icon">👤</span>
+                <span class="menu-label">Perfil</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- ================================================
+         Map Screen - Mapa de Exploração
+         ================================================ -->
+    <div id="map-screen" class="screen">
+        <header class="screen-header">
+            <button class="btn btn-back" id="map-back">←</button>
+            <h1 class="screen-title">Mapa</h1>
+        </header>
+
+        <div id="map-container"></div>
+
+        <div class="map-legend">
+            <div class="legend-item">
+                <span class="legend-dot player"></span>
+                <span>Você</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot monster"></span>
+                <span>Monstro</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot loot"></span>
+                <span>Item</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================
+         Inventory Screen - Inventário
+         ================================================ -->
+    <div id="inventory-screen" class="screen">
+        <header class="screen-header">
+            <button class="btn btn-back" id="inventory-back">←</button>
+            <h1 class="screen-title">Inventário</h1>
+        </header>
+
+        <div class="inventory-categories">
+            <button class="category-tab active" data-category="all">Todos</button>
+            <button class="category-tab" data-category="weapon">Armas</button>
+            <button class="category-tab" data-category="support">Apoio</button>
+            <button class="category-tab" data-category="healing">Cura</button>
+        </div>
+
+        <div class="inventory-grid" id="inventory-grid">
+            <!-- Slots serão gerados dinamicamente -->
+        </div>
+
+        <div id="inventory-empty" class="empty-state" style="display: none;">
+            <span class="empty-icon">🎒</span>
+            <h3 class="empty-title">Inventário Vazio</h3>
+            <p class="empty-text">Explore o mapa para encontrar itens</p>
+        </div>
+    </div>
+
+    <!-- ================================================
+         Bestiary Screen - Casos / Bestiário
+         ================================================ -->
+    <div id="bestiary-screen" class="screen">
+        <header class="screen-header">
+            <button class="btn btn-back" id="bestiary-back">←</button>
+            <h1 class="screen-title">Casos</h1>
+        </header>
+
+        <div class="bestiary-list" id="bestiary-list">
+            <!-- Cards de monstros serão gerados dinamicamente -->
+        </div>
+    </div>
+
+    <!-- ================================================
+         Diary Screen - Diário de Caçadas
+         ================================================ -->
+    <div id="diary-screen" class="screen">
+        <header class="screen-header">
+            <button class="btn btn-back" id="diary-back">←</button>
+            <h1 class="screen-title">Diário</h1>
+        </header>
+
+        <div class="diary-list" id="diary-list">
+            <!-- Entradas serão geradas dinamicamente -->
+        </div>
+
+        <div id="diary-empty" class="empty-state" style="display: none;">
+            <span class="empty-icon">📓</span>
+            <h3 class="empty-title">Diário Vazio</h3>
+            <p class="empty-text">Suas caçadas serão registradas aqui</p>
+        </div>
+    </div>
+
+    <!-- ================================================
+         Profile Screen - Perfil do Caçador
+         ================================================ -->
+    <div id="profile-screen" class="screen">
+        <header class="screen-header">
+            <button class="btn btn-back" id="profile-back">←</button>
+            <h1 class="screen-title">Perfil</h1>
+        </header>
+
+        <div class="profile-header">
+            <div class="profile-avatar">🏹</div>
+            <h2 class="profile-name" id="profile-name">Caçador</h2>
+            <p class="profile-level" id="profile-level">Nível 1</p>
+        </div>
+
+        <div class="profile-stats">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-hunts">0</div>
+                <div class="stat-label">Caçadas</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-kills">0</div>
+                <div class="stat-label">Eliminações</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-items">0</div>
+                <div class="stat-label">Itens</div>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h3 class="section-title">Configurações</h3>
+            
+            <div class="setting-item">
+                <span class="setting-label">Som</span>
+                <label class="toggle">
+                    <input type="checkbox" id="setting-sound" checked />
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">Vibração</span>
+                <label class="toggle">
+                    <input type="checkbox" id="setting-vibration" checked />
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <button id="btn-logout" class="btn btn-secondary" style="width: 100%;">
+                Sair
+            </button>
+        </div>
+    </div>
+
+    <!-- ================================================
+         AR Screen - Modo de Caçada
+         ================================================ -->
+    <div id="ar-screen" class="screen">
+        <!-- A-Frame Scene será inserida aqui -->
+    </div>
+
+    <!-- ================================================
+         AR HUD - Interface durante caçada
+         ================================================ -->
+    <div id="ar-hud">
+        <!-- Barra Superior -->
+        <div class="ar-top-bar">
+            <!-- HP do Jogador -->
+            <div class="ar-player-hp">
+                <div class="hp-bar-container">
+                    <div class="hp-bar high" id="player-hp-bar" style="width: 100%;"></div>
+                    <span class="hp-text" id="player-hp-text">100/100</span>
+                </div>
+            </div>
+
+            <!-- Logo -->
+            <div class="ar-logo">⭐</div>
+
+            <!-- HP do Monstro (visível só em combate) -->
+            <div class="ar-monster-hp" id="monster-hp-container" style="opacity: 0;">
+                <div class="hp-bar-container">
+                    <div class="hp-bar high" id="monster-hp-bar" style="width: 100%;"></div>
+                    <span class="hp-text" id="monster-hp-text">???</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra Inferior -->
+        <div class="ar-bottom-bar">
+            <!-- Mini-Mapa Radar -->
+            <div class="ar-minimap" id="ar-minimap">
+                <canvas id="radar-canvas" width="100" height="100"></canvas>
+            </div>
+
+            <!-- Botão de Ação Central -->
+            <button class="ar-action-btn" id="ar-action-btn">
+                ⚔️
+            </button>
+
+            <!-- Botões de Inventário -->
+            <div class="ar-inventory-buttons">
+                <button class="ar-inventory-btn" id="ar-inventory-btn">
+                    🎒
+                </button>
+            </div>
+        </div>
+
+        <!-- Botão Voltar -->
+        <button class="btn btn-back" id="ar-back" style="position: absolute; top: 1rem; left: 1rem;">
+            ←
+        </button>
+    </div>
+
+    <!-- ================================================
+         Modal - Item Details
+         ================================================ -->
+    <div class="modal-overlay" id="item-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-item-name">Nome do Item</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-item-description">Descrição do item...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+                <button class="btn btn-primary" id="modal-use">Usar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================
+         Modal - Monster Details
+         ================================================ -->
+    <div class="modal-overlay" id="monster-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-monster-name">Nome do Monstro</h2>
+                <button class="modal-close" id="monster-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="monster-detail-icon" id="modal-monster-icon" style="font-size: 4rem; text-align: center; margin-bottom: 1rem;">👻</div>
+                <h4 style="color: var(--spn-gold); margin-bottom: 0.5rem;">Lore</h4>
+                <p id="modal-monster-lore" style="margin-bottom: 1rem;">...</p>
+                <h4 style="color: var(--spn-gold); margin-bottom: 0.5rem;">Como Derrotar</h4>
+                <p id="modal-monster-hint">...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="monster-modal-close-btn" style="width: 100%;">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================
+         A-Frame Scene (para AR)
+         ================================================ -->
+    <a-scene 
+        id="ar-scene"
+        renderer="alpha: true; antialias: true; colorManagement: true;"
+        xr-mode-ui="enabled: false;"
+        webxr="optionalFeatures: dom-overlay, hit-test; overlayElement: #ar-hud;"
+        ar-hit-test="target: #reticle;"
+        embedded
+        style="display: none;"
+    >
+        <!-- Spawner de Monstros -->
+        <a-entity id="monster-spawner" monster-spawner></a-entity>
+
+        <!-- Câmera com Raycaster -->
+        <a-entity id="rig">
+            <a-camera 
+                id="ar-camera"
+                position="0 1.6 0" 
+                look-controls="enabled: false"
+            >
+                <a-entity 
+                    id="weapon" 
+                    weapon 
+                    raycaster="objects: .monster; far: 50; showLine: false"
+                    position="0 0 -0.5"
+                ></a-entity>
+                <a-cursor visible="false"></a-cursor>
+            </a-camera>
+        </a-entity>
+
+        <!-- Luzes -->
+        <a-light type="ambient" intensity="0.6"></a-light>
+        <a-light type="directional" position="1 2 3" intensity="0.8"></a-light>
+
+        <!-- Reticle para AR Hit Test -->
+        <a-entity id="reticle" visible="false">
+            <a-ring color="#C9A227" radius-inner="0.04" radius-outer="0.06"></a-ring>
+        </a-entity>
+    </a-scene>
+
+    <!-- ================================================
+         Scripts
+         ================================================ -->
+    <script type="module" src="/main.js"></script>
+</body>
+
+</html>
